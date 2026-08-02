@@ -123,7 +123,13 @@ Whoever holds the current secret can always cancel a rotation they did not initi
 - **Inputs:** anchor cell, pending cell with `since` ≥ `pending_since + veto_window`.
 - **Outputs:** anchor cell with `secret_commitment := C'` and `rotation_count += 1`.
 
-**Use block-number `since`, not timestamp.** Absolute timestamp `since` is validated against the median time of the previous 37 blocks ([RFC 0017](https://nervosnetwork.github.io/rfcs/rfcs/0017-tx-valid-since/0017-tx-valid-since.html)), so it drifts against wall clock. Block height is exact, which is what a security-critical window needs.
+**Use the timestamp metric (`metric_flag = 10`), not block number.** The veto window exists to give the current secret holder enough real time to notice a rotation and object to it, so what the window must deliver is a duration rather than a count of blocks.
+
+Timestamp `since` is validated against the median timestamp of the previous 37 blocks ([RFC 0017](https://nervosnetwork.github.io/rfcs/rfcs/0017-tx-valid-since/0017-tx-valid-since.html)). That median lags wall clock, which ends the window no earlier than the configured time and therefore errs toward a longer window. Every node computes the same median from the same headers, so the value is deterministic at consensus, and taking the median is what bounds a miner's ability to move it.
+
+Block height is exact as a count and variable as a duration, because converting a height difference into elapsed hours assumes a block rate that the chain only targets on average. A window of N blocks delivers a different number of real hours in different periods, which is the wrong property for a window a user has to notice within.
+
+`ckb-transaction-firewall` enforces its governance review delay on the same metric, in `proposal-anchor` and `governance-lock`.
 
 ---
 
